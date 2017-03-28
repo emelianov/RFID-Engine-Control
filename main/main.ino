@@ -1,5 +1,6 @@
 /////////////////////////////////////////////////////////////////////
 // RFID Engine Control
+// by a.m.emelianov@gmail.com
 //
 // Main firmware
 //
@@ -14,21 +15,21 @@
 
 
 // Shutdown pin. Shuold be connected to ground to initiate action.
-#define PIN2          A5
+#define PIN2          A2
 // Card program pin. Should be connected to ground to initiate action
-#define PIN1          A4
+#define PIN1          A3
 // RFID reader SPI SS pin
 #define RF_PIN        10
-// SPI 10
-// SPI 11
-// SPI 12
+// SPI MOSI           11
+// SPI MISO           12
+// SPI SCK            13
 // RFID reset pin
 #define RF_RESET      11
 // Realy 1 pin
 #define RELAY1        A0
 // Relay 2 pin
 #define RELAY2        A1
-// OLED display I2C ID
+// OLED display I2C ID. Scan I2C bus to detect what ID is set at Your display
 #define LCD_ID        0x3C
 // Maximum number of stored card slots
 #define CARD_MAX      5
@@ -46,6 +47,8 @@
 #define EEPROM_CARDS  0
 // Display reset pin (not really used)
 #define OLED_RESET    4
+// Delay for message (2 sec.)
+#define MSG_DELAY     2000
 
 
 enum CARD { ABSENT, FAILURE, VALID, INVALID };// Card presence state constants
@@ -60,7 +63,7 @@ bool              start = false;              // Sets when Ignition, resets on S
 void setup() {
   Serial.begin(115200);
   // Required for Arduino Leonargo board only
-  while (! Serial);                           // Must be disabled for production
+  //while (! Serial);                           // Must be disabled for production
   Serial.println("Init display");
   Wire.begin();                               // SSD1306 uses I2C
   display.begin(SSD1306_SWITCHCAPVCC, LCD_ID);// initialize with the I2C addr
@@ -82,11 +85,11 @@ void setup() {
   cardTrys = 0;
   Serial.println("Read stored cards");
   EEPROM_read(EEPROM_CARDS, cards);           // Read stored cards from EEPROM to RAM
-  //while (cards[0] == 0 || PIN1_HIGH) {        // If first card slot is empty or PIN1 is HIGH waiting for new card to be presented
-  while (PIN1_HIGH) {        // For debug
+  while (cards[0] == 0 || PIN1_HIGH) {        // If first card slot is empty or PIN1 is HIGH waiting for new card to be presented
+  //while (PIN1_HIGH) {        // For debug
     Serial.println("Waiting for new card");
     message("Present new card");              // Print message on screen
-    while (getCard() != INVALID) { delay(100); } // Waiting until card is prasented
+    while (cardState() != INVALID) { delay(100); } // Waiting until card is prasented
     uint8_t i = 0;
     for (i = 0; i < CARD_MAX; i++) {          // Look for free slot to store card
       if (cards[i] == 0) {                    // if found empty slot
@@ -101,15 +104,16 @@ void setup() {
       break;                                  // Continue normal startup
     }
     Serial.println("New card added");
+    delay(MSG_DELAY);
   }
   wdt_enable(WDTO_8S);                        // Set 8 sec. watchdog timer
 }
 
-// Main working cicle
+// Main working cycle
 void loop() {
   wdt_reset();                              // Reset watchdog timer
   CARD state = cardState();                 // Try to read card. Possible states are VALID, INVALID, ABSENT, ERROR
-  if (PIN1_HIGH) state = VALID;             // For debug                       
+  //if (PIN1_HIGH) state = VALID;             // For debug                       
   if (state == VALID) {                     // Valid card is presented
     cardTrys = 0;                           // Reset card read retry counter
     if (! IGNITION) {                       // If Ignition is Off
@@ -125,17 +129,19 @@ void loop() {
       if (IGNITION) {                       // If Ignition is on
         ignitionStop();                     // turn it Off
       }
-    switch (state) {                        // Print message corresponding to current card presentation state
-      case ABSENT:
-        message("Waiting   for card...");
-        break;
-      case FAILURE:
-        message("Card read error");
-        break;
-      case INVALID:
-        message("Card is not valid");
-        break;
-    }
+      switch (state) {                        // Print message corresponding to current card presentation state
+        case ABSENT:
+          message("Waiting   for card..");
+          break;
+        case FAILURE:
+          message("Card read error");
+          delay(MSG_DELAY);
+          break;
+        case INVALID:
+          message("Card is   not valid");
+          delay(MSG_DELAY);
+          break;
+      }
     }
   }
   if (START && PIN2_HIGH) {                 // If shutdown button is pressed
@@ -180,32 +186,41 @@ CARD cardState() {
   return INVALID;                           // return INVALID otherway
 }
 
+// Ignition On procedure
 void ignitionStart() {
   digitalWrite(RELAY1, LOW);
   start = true;
 }
+
+// Ingition Off procedure
 void ignitionStop() {
-  wdt_reset();
+  wdt_reset();                              // Reset watchdog timer before relative long delay
   message("Ignition  off");
   delay(2000);
   digitalWrite(RELAY1, HIGH);
 }
+
+// Perform engine shutdown procedure
 void engineShutdown() {
   message("Sutting   down");
   digitalWrite(RELAY2, LOW);
-  wdt_reset();
+  // Divide 6 sec. delay into two 3 sec. delay. I don't like not reset watchdog longer than half of maximum (8 sec.)
+  wdt_reset();                            // Reset watchdog
   delay(3000);
   wdt_reset();
   delay(3000);
   digitalWrite(RELAY2, HIGH);
   start = false;
 }
+
+// Function to print string on display
 void message(char* str) {
-  display.clearDisplay();
-  display.setTextSize(1);
+  // Operations with buffer does not affect displaying picture until .display() call
+  display.clearDisplay();                 // Clear display buffer
+  display.setTextSize(2);                 // Text size. 
   display.setTextColor(WHITE);
-  display.setCursor(0,0);
-  display.println(str);
-  display.display();
+  display.setCursor(0,0);                 // Start point of text. 0,0 is top left corner
+  display.println(str);                   // Print text
+  display.display();                      // Show buffer contents
 }
 
