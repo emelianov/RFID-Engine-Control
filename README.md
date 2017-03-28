@@ -12,19 +12,18 @@ Relay pins: 10, 11, 12, 13. That pinout is incompatible with SPI bus. So You hav
 * I2C 128x64 display
 * Arduino UNO board
 ### Pinout used
-|----|----|
-|PIN	| Description	|
-|-------|---------------|
-|A0	| Relays L0	|
-|A1     | Relays L1	|
-|A2     | Pin1 RFID card add |
-|A3     | Pin2 Shutdown force|
-|A4     | OLED SCL	|
-|A5     | OLED SDA	|
-|10	| RFID SS	|
-|11	| RFID MSIO	|
-|12	| RFID MISO	|
-|13	| RFID CLK	|
-=======
+PIN	| Description
+-------|---------------
+A0	| Relays L0
+A1     | Relays L1
+A2     | Pin1 RFID card add
+A3     | Pin2 Shutdown force
+A4     | OLED SCL
+A5     | OLED SDA
+10	| RFID SS
+11	| RFID MSIO
+12	| RFID MISO
+13	| RFID CLK
+
 ![Board](https://github.com/emelianov/RFID-Engine-Control/blob/master/docs/wiring.png)
 
