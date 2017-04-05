@@ -202,7 +202,7 @@ void ignitionStop() {
 
 // Perform engine shutdown procedure
 void engineShutdown() {
-  message("Sutting   down");
+  message("Shutting  down");
   digitalWrite(RELAY2, LOW);
   // Divide 6 sec. delay into two 3 sec. delay. I don't like not reset watchdog longer than half of maximum (8 sec.)
   wdt_reset();                            // Reset watchdog
