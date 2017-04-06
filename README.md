@@ -19,7 +19,7 @@ A1     | Relays L1
 A2     | Pin1 RFID card add
 A3     | Pin2 Shutdown force
 A4     | OLED SDA
-A5     | OLED SDL
+A5     | OLED SCL
 10	| RFID SS
 11	| RFID MSIO
 12	| RFID MISO
